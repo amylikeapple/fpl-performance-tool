@@ -6,10 +6,10 @@ import pandas as pd
 # import numpy as np
 from pandas.io.json import json_normalize
 import urllib.request
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score
+# from sklearn.tree import DecisionTreeClassifier
+# from sklearn.model_selection import train_test_split
+# from sklearn.ensemble import RandomForestClassifier
+# from sklearn.metrics import accuracy_score
 import matplotlib.pyplot as plt
 # import seaborn as sns
 # import unicodedata
