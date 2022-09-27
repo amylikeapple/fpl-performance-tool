@@ -220,7 +220,7 @@ fig = px.scatter(df_fpl2, x='event',y='total_points',color='Player',animation_fr
 # %%
 
 fig2 = px.bar(df_fpl2, x='total_points',y='Player',color='Player',orientation='h',animation_frame='event',range_x=[0,2700])
-fig2.update_layout(yaxis={'categoryorder':'total ascending'},legend=dict(orientation='h'), margin=dict(l=10, r=10, t=10, b=10),modebar_remove=['zoom', 'select'],dragmode = False)
+fig2.update_layout(yaxis={'categoryorder':'total ascending'},legend=dict(orientation='h'), margin=dict(l=10, r=10, t=10, b=10),modebar_remove=['zoom', 'select'],dragmode = False,showlegend=False)
 # st.plotly_chart(fig2,use_container_width=True)
 figa1,figa2 = st.columns(2)
 with figa1:
@@ -235,7 +235,7 @@ with figa2:
     df_rank_graph = df_fpl2.query("Player == @player")
     fig3 = px.line(df_rank_graph, x='event', y='overall_rank', color='Player', markers=True)
     fig3.update_yaxes(autorange="reversed")
-    fig3.update_layout(legend=dict(orientation='h'), margin=dict(l=10, r=10, t=10, b=10),modebar_remove=['zoom', 'select'],dragmode = False)
+    fig3.update_layout(legend=dict(orientation='h'), margin=dict(l=10, r=10, t=10, b=20),modebar_remove=['zoom', 'select'],dragmode = False)
     st.plotly_chart(fig3,use_container_width=True)
 
 #%%
