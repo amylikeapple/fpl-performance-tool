@@ -595,7 +595,7 @@ with col3:
     st.text(f'>12.0m Top 50 PPG Benchmark: {round(df_tier_6_value[0],2)}')
     st.dataframe(df_tier_6_table)
 
-st.subheader('Expected Points Over Coming Weeks')
+st.subheader('Expected Points')
 fig2 = px.violin(df_tier_all_future_table, y='Average Expected Points/Game (Over 5 Games)',hover_data=['Name'],points='all',box=True,color='tier')
 fig2.update_layout(legend=dict(orientation='h'), margin=dict(l=10, r=10, t=10, b=10),modebar_remove=['zoom', 'select'],dragmode = False)
 st.plotly_chart(fig2, use_container_width=True)
