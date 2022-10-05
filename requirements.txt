@@ -7,3 +7,4 @@ SQLAlchemy==1.4.22
 streamlit==1.10.0
 sympy==1.9
 lxml
+unicode

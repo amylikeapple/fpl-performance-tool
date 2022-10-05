@@ -12,7 +12,7 @@ import urllib.request
 # from sklearn.metrics import accuracy_score
 import matplotlib.pyplot as plt
 # import seaborn as sns
-# import unicodedata
+import unicodedata
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
@@ -283,7 +283,8 @@ with urllib.request.urlopen(url_names) as f10:
     d10 = json.load(f10)
 
 df_names = pd.json_normalize(d10['elements'])
-df_names_1 = df_names[['id','web_name','element_type','form','value_form','selected_by_percent']]
+df_names_1 = df_names[['id','web_name','element_type','form','value_form','selected_by_percent','first_name','second_name','team','chance_of_playing_next_round']]
+df_names_1['full_name'] = df_names_1['first_name'] + " " + df_names_1['second_name']
 
 df_wow_performance.rename(columns={'element':'id'}, inplace=True)
 
@@ -327,6 +328,21 @@ df_wow_performance_with_pts.rename(columns={'web_name':'player_name','value':'pr
 df_past_2_games_avg=df_wow_performance_with_pts['rolling_average_2'].mean()
 
 #%%
+#Get Team Names
+str = 'https://fantasy.premierleague.com/api/bootstrap-static/'
+
+with urllib.request.urlopen(str) as fteam:
+    dteam = json.load(fteam)
+
+df_teams_raw = pd.json_normalize(dteam['teams'])
+df_team = df_teams_raw[['id','short_name','strength']]
+df_team_dict = df_teams_raw[['id','short_name']]
+df_team_dict.rename(columns={'id':'team'}, inplace=True)
+teams_dict = dict(df_team_dict.values)
+
+df_wow_performance_with_pts['team'] = df_wow_performance_with_pts['team'].map(teams_dict)
+
+#%%
 
 #Transfer history
 df_to_map = df_names_1[['id','web_name']]
@@ -350,7 +366,9 @@ df_transfers_out['Players Transferred Out/No Fixtures'] = df_transfers_out['Play
 df_transfers_out['Price'] = df_transfers_out['Price'].map(prices_dict)
 df_transfers_out['Points'] = df_transfers_out['Points'].map(points_dict)
 net_points = sum(df_transfers['Points']) - sum(df_transfers_out['Points'])
-gameweek_points = sum(df_wow_performance_with_pts['total_points'].head(11))
+
+cap = df_wow_performance_with_pts[['is_captain','total_points']]
+gameweek_points = sum(df_wow_performance_with_pts['total_points'].head(11)) + cap[cap['is_captain'] == True].loc[cap[cap['is_captain'] == True].index[0]][1]
 
 #%%
 #Calculate Benchmarks for value_form
@@ -418,6 +436,51 @@ df_expected_points_clean = pd.concat([df_expected_points_1,df_expected_points_2]
 #  '17.1']]
 df_expected_points_clean['Average Expected Points/Game (Over 5 Games)']=df_expected_points_clean[list(df_expected_points_clean.columns)[4:9]].mean(axis=1)
 df_expected_points_clean['Expected Points/Game Per Mil'] = df_expected_points_clean['Average Expected Points/Game (Over 5 Games)']/df_expected_points_clean['Price']
+
+def clean_names(x):
+    text = x
+    clean = unicodedata.normalize('NFKD', text).encode('ascii', 'ignore')
+    return clean.decode('utf-8')
+
+df_wow_performance_with_pts['full_name'] = df_wow_performance_with_pts['full_name'].map(clean_names)
+
+#%%
+#Map out Expected Points 
+wow_team_list = list(df_wow_performance_with_pts['team'].unique())
+# a = list(df_wow_performance_with_pts['full_name'])
+
+def remove_space(x):
+    if ' ' in x:
+        sliced = x[2:]
+        return sliced
+    else:
+        return x
+
+df_expected_points_clean['Name'] = df_expected_points_clean['Name'].map(remove_space)
+
+# b = list(df_expected_points_clean['Name'])
+#%%
+name_mapping = {}
+
+for i in wow_team_list:
+    dfa = df_wow_performance_with_pts[df_wow_performance_with_pts['team'] == i]
+    dfb = df_expected_points_clean[df_expected_points_clean['Team'] == i]
+    a = list(dfa['full_name'])
+    b = list(dfb['Name'])
+    for x in list(range(len(a))):
+        y = [z for z in range(len(b)) if b[z] in a[x]]
+        if len(y) != 0:
+            name_mapping[a[x]] = b[y[0]] + i
+
+df_wow_performance_with_pts['full_name'] = df_wow_performance_with_pts['full_name'].map(name_mapping)
+df_wow_performance_with_pts.rename(columns={'full_name':'Name'}, inplace=True)
+
+df_expected_points_clean['Name'] = df_expected_points_clean['Name'] + df_expected_points_clean['Team']
+
+expected_points_mapping = dict(df_expected_points_clean[['Name','Average Expected Points/Game (Over 5 Games)']].values)
+
+df_wow_performance_with_pts['Name'] = df_wow_performance_with_pts['Name'].map(expected_points_mapping)
+df_wow_performance_with_pts.rename(columns={'Name':'avg_expected_pts_next_5_games'},inplace=True)
 #%%
 #4.5 mil to 5.5 mil Future
 df_tier_1_future_table = df_expected_points_clean[df_expected_points_clean['Price'].between(4.5,5.5,inclusive=True)].head(50)
@@ -449,7 +512,7 @@ tier_future_all = [df_tier_1_future_table,df_tier_2_future_table,df_tier_3_futur
 df_tier_all_future_table = pd.concat(tier_future_all)
 
 #Suggested Transfers
-df_suggested_transfers = df_wow_performance_with_pts[df_wow_performance_with_pts['rolling_average_2'] < 3][['player_name','price','season_avg','rolling_average_2','rolling_average_5','total_season_pts']].sort_values(by=['rolling_average_2'],ascending=True).head(5)
+df_suggested_transfers = df_wow_performance_with_pts[(df_wow_performance_with_pts['rolling_average_2'] < 3) | (df_wow_performance_with_pts['chance_of_playing_next_round'] < 50)][['player_name','price','season_avg','chance_of_playing_next_round','rolling_average_2', 'avg_expected_pts_next_5_games','total_season_pts']].sort_values(by=['chance_of_playing_next_round','rolling_average_2','avg_expected_pts_next_5_games'],ascending=[True,True,False]).head(5)
 df_suggested_transfers_in = df_tier_all_future_table.sort_values(by=['Average Expected Points/Game (Over 5 Games)'],ascending=False)
 
 #%%
@@ -500,13 +563,16 @@ with col2:
 st.text(f'Net Points From Transfers: {net_points}')
 st.text(f'Average Points/Game Past 2 Games: {round(df_past_2_games_avg,2)}')
 st.text(f'Total Gameweek Points: {gameweek_points}')
-st.text('Note: value_form and selected_by_percent reflect latest gameweek values, not retrospective values')
 with st.expander('⬇️ Column Definitions'):
     st.text('value_form = Player price divided by recent form. This measures efficiency of spend.')
     st.text('rolling _average = The average points over the past 2, 3, or 5 games from the selected gameweek.')
-st.table(df_wow_performance_with_pts.drop(columns=['id','form','position','multiplier','is_vice_captain']).style.background_gradient(cmap='RdYlGn', subset=pd.IndexSlice[:,['value_form','total_points','rolling_average_2']]).set_precision(2))
-st.subheader('Underperforming Players To Consider Transferring Out')
-st.table(df_suggested_transfers)
+    st.text('avg_expected_pts_next_5_games = The average expected points per game over the next 5 gameweeks')
+    st.text('Note: value_form and selected_by_percent reflect latest gameweek values, not retrospective values')
+# st.table(df_wow_performance_with_pts.drop(columns=['id','form','position','multiplier','is_vice_captain']).style.background_gradient(cmap='RdYlGn', subset=pd.IndexSlice[:,['value_form','total_points','rolling_average_2']]).set_precision(2))
+st.table(df_wow_performance_with_pts[['player_name','element_type','team','selected_by_percent','value_form','total_points','rolling_average_2','avg_expected_pts_next_5_games','rolling_average_3','rolling_average_5','total_season_pts']].style.background_gradient(cmap='RdYlGn', subset=pd.IndexSlice[:,['total_points','rolling_average_2']]).set_precision(2))
+st.subheader('Players To Consider Transferring Out')
+st.text('Ranked by injury, recent performance and expected points in upcoming matches')
+st.table(df_suggested_transfers.style.background_gradient(cmap='RdYlGn', subset=pd.IndexSlice[:,['chance_of_playing_next_round','rolling_average_2','avg_expected_pts_next_5_games']]).set_precision(2))
 st.subheader('Top 10 Suggested Transfers In')
 st.text('For Latest GW Only, Data Is Not Retrospective')
 col1,col2,col3 = st.columns(3)
@@ -550,6 +616,7 @@ df_suggested_transfers_in_query.columns = df_suggested_transfers_in_query.column
 st.table(df_suggested_transfers_in_query.head(10).style.background_gradient(cmap='RdYlGn').set_precision(2))
 
 st.subheader('OPTA Stats')
+
 st.text('Validate Your Choices With Underlying Stats!')
 
 player1= st.multiselect(
@@ -569,31 +636,33 @@ fig = px.violin(df_tier_all_table, y='points_per_game',hover_data=['Name'],point
 fig.update_layout(legend=dict(orientation='h'), margin=dict(l=10, r=10, t=10, b=10),modebar_remove=['zoom', 'select'],dragmode = False)
 st.plotly_chart(fig, use_container_width=True)
 
-col1,col2,col3 = st.columns(3)
-with col1:
-    st.text(f'4.5m-5.5m Top 50 PPG Benchmark: {round(df_tier_1_value[0],2)}')
-    st.dataframe(df_tier_1_table)
+with st.expander('⬇️ Expand Detailed Stats'):
 
-with col2:
-    st.text(f'5.5m-6.5m Top 50 PPG Benchmark: {round(df_tier_2_value[0],2)}')
-    st.dataframe(df_tier_2_table)
+    col1,col2,col3 = st.columns(3)
+    with col1:
+        st.text(f'4.5m-5.5m Top 50 PPG Benchmark: {round(df_tier_1_value[0],2)}')
+        st.dataframe(df_tier_1_table)
 
-with col3:
-    st.text(f'6.5m-8.0m Top 50 PPG Benchmark: {round(df_tier_3_value[0],2)}')
-    st.dataframe(df_tier_3_table)
+    with col2:
+        st.text(f'5.5m-6.5m Top 50 PPG Benchmark: {round(df_tier_2_value[0],2)}')
+        st.dataframe(df_tier_2_table)
 
-col1,col2,col3 = st.columns(3)
-with col1:
-    st.text(f'8.0m-9.0m Top 50 PPG Benchmark: {round(df_tier_4_value[0],2)}')
-    st.dataframe(df_tier_4_table)
+    with col3:
+        st.text(f'6.5m-8.0m Top 50 PPG Benchmark: {round(df_tier_3_value[0],2)}')
+        st.dataframe(df_tier_3_table)
 
-with col2:
-    st.text(f'9.0m-11.0m Top 50 PPG Benchmark: {round(df_tier_5_value[0],2)}')
-    st.dataframe(df_tier_5_table)
+    col1,col2,col3 = st.columns(3)
+    with col1:
+        st.text(f'8.0m-9.0m Top 50 PPG Benchmark: {round(df_tier_4_value[0],2)}')
+        st.dataframe(df_tier_4_table)
 
-with col3:
-    st.text(f'>12.0m Top 50 PPG Benchmark: {round(df_tier_6_value[0],2)}')
-    st.dataframe(df_tier_6_table)
+    with col2:
+        st.text(f'9.0m-11.0m Top 50 PPG Benchmark: {round(df_tier_5_value[0],2)}')
+        st.dataframe(df_tier_5_table)
+
+    with col3:
+        st.text(f'>12.0m Top 50 PPG Benchmark: {round(df_tier_6_value[0],2)}')
+        st.dataframe(df_tier_6_table)
 
 st.subheader('Expected Points')
 fig2 = px.violin(df_tier_all_future_table, y='Average Expected Points/Game (Over 5 Games)',hover_data=['Name'],points='all',box=True,color='tier')
@@ -637,4 +706,13 @@ st.dataframe(df_expected_points_clean_query.sort_values(by=['Average Expected Po
 #Add Rank Graph
 #Add Benchmark Graphs
 #Replace suggested transfers with expected point table, with ability to filter. Next to it, add xG Table with ability to filter player names
+#To get expected points in W-o-W 
+    #Get teem, full_name in W-o-W Table
+    #Get team names from https://fantasy.premierleague.com/api/bootstrap-static/ under teams
+    #Create dict of id to short_name
+    #Map out team names in W-o-W table
+    #Filter dataframe by teams
+    #Create mapping with Expected goals table
+    #Map out to expected goals table
+    #Merge data
 # %%
