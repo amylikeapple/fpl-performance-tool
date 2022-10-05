@@ -222,6 +222,10 @@ fig = px.scatter(df_fpl2, x='event',y='total_points',color='Player',animation_fr
 fig2 = px.bar(df_fpl2, x='total_points',y='Player',color='Player',orientation='h',animation_frame='event',range_x=[0,2700])
 fig2.update_layout(yaxis={'categoryorder':'total ascending'},legend=dict(orientation='h'), margin=dict(l=10, r=10, t=10, b=10),modebar_remove=['zoom', 'select'],dragmode = False,showlegend=False)
 # st.plotly_chart(fig2,use_container_width=True)
+
+st.text('  ')
+st.text('  ')
+
 figa1,figa2 = st.columns(2)
 with figa1:
     st.text('  ')
@@ -239,6 +243,9 @@ with figa2:
     st.plotly_chart(fig3,use_container_width=True)
 
 #%%
+st.text('  ')
+st.text('  ')
+
 st.subheader('W-o-W Player Team Performance')
 
 # gameweek = st.multiselect(
@@ -569,10 +576,18 @@ with st.expander('⬇️ Column Definitions'):
     st.text('avg_expected_pts_next_5_games = The average expected points per game over the next 5 gameweeks')
     st.text('Note: value_form and selected_by_percent reflect latest gameweek values, not retrospective values')
 # st.table(df_wow_performance_with_pts.drop(columns=['id','form','position','multiplier','is_vice_captain']).style.background_gradient(cmap='RdYlGn', subset=pd.IndexSlice[:,['value_form','total_points','rolling_average_2']]).set_precision(2))
-st.table(df_wow_performance_with_pts[['player_name','element_type','team','selected_by_percent','value_form','total_points','rolling_average_2','avg_expected_pts_next_5_games','rolling_average_3','rolling_average_5','total_season_pts']].style.background_gradient(cmap='RdYlGn', subset=pd.IndexSlice[:,['total_points','rolling_average_2']]).set_precision(2))
+st.table(df_wow_performance_with_pts[['player_name','element_type','team','selected_by_percent','value_form','total_points','rolling_average_2','avg_expected_pts_next_5_games','rolling_average_3','rolling_average_5','total_season_pts']].style.background_gradient(cmap='BuGn', subset=pd.IndexSlice[:,['total_points','rolling_average_2']]).set_precision(2))
+
+st.text('  ')
+st.text('  ')
+
 st.subheader('Players To Consider Transferring Out')
 st.text('Ranked by injury, recent performance and expected points in upcoming matches')
-st.table(df_suggested_transfers.style.background_gradient(cmap='RdYlGn', subset=pd.IndexSlice[:,['chance_of_playing_next_round','rolling_average_2','avg_expected_pts_next_5_games']]).set_precision(2))
+st.table(df_suggested_transfers.style.background_gradient(cmap='BuGn', subset=pd.IndexSlice[:,['chance_of_playing_next_round','rolling_average_2','avg_expected_pts_next_5_games']]).set_precision(2))
+
+st.text('  ')
+st.text('  ')
+
 st.subheader('Top 10 Suggested Transfers In')
 st.text('For Latest GW Only, Data Is Not Retrospective')
 col1,col2,col3 = st.columns(3)
@@ -613,7 +628,10 @@ df_suggested_transfers_in_query = df_suggested_transfers_in.query(
     "tier == @tier and Pos == @pos and Team == @team"
 )
 df_suggested_transfers_in_query.columns = df_suggested_transfers_in_query.columns.str.replace('.1',' ')
-st.table(df_suggested_transfers_in_query.head(10).style.background_gradient(cmap='RdYlGn').set_precision(2))
+st.table(df_suggested_transfers_in_query.head(10).style.background_gradient(cmap='BuGn').set_precision(2))
+
+st.text('  ')
+st.text('  ')
 
 st.subheader('OPTA Stats')
 
@@ -628,7 +646,10 @@ player1= st.multiselect(
 df_opta_table = df_understat_table.query(
     "player_name == @player1"
 )
-st.table(df_opta_table.sort_values(by=['xG+xA per 90'],ascending=[False]).style.background_gradient(cmap='RdYlGn').set_precision(2))
+st.table(df_opta_table.sort_values(by=['xG+xA per 90'],ascending=[False]).style.background_gradient(cmap='BuGn').set_precision(2))
+
+st.text('  ')
+st.text('  ')
 
 st.subheader('Misc Stats & Trends')
 st.text('Points Per Game by Price Tiers - Which Tier Has Been Driving Value?')
@@ -664,6 +685,9 @@ with st.expander('⬇️ Expand Detailed Stats'):
         st.text(f'>12.0m Top 50 PPG Benchmark: {round(df_tier_6_value[0],2)}')
         st.dataframe(df_tier_6_table)
 
+st.text('  ')
+st.text('  ')
+
 st.subheader('Expected Points')
 fig2 = px.violin(df_tier_all_future_table, y='Average Expected Points/Game (Over 5 Games)',hover_data=['Name'],points='all',box=True,color='tier')
 fig2.update_layout(legend=dict(orientation='h'), margin=dict(l=10, r=10, t=10, b=10),modebar_remove=['zoom', 'select'],dragmode = False)
@@ -681,7 +705,7 @@ if all_fut_player:
 df_expected_points_clean_query = df_expected_points_clean.query(
     "Name == @future_player"
 )
-st.dataframe(df_expected_points_clean_query.sort_values(by=['Average Expected Points/Game (Over 5 Games)'],ascending=[False]).style.background_gradient(cmap='RdYlGn', subset=pd.IndexSlice[:,['Average Expected Points/Game (Over 5 Games)','Expected Points/Game Per Mil']]).set_precision(2))
+st.dataframe(df_expected_points_clean_query.sort_values(by=['Average Expected Points/Game (Over 5 Games)'],ascending=[False]).style.background_gradient(cmap='BuGn', subset=pd.IndexSlice[:,['Average Expected Points/Game (Over 5 Games)','Expected Points/Game Per Mil']]).set_precision(2))
 
 #We need to get element names -> Dictionary of names
    #We can this from bootstrap-static -> elements -> get both id and web_name
